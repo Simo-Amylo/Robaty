@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ghita — Ta meilleure amie IA</title>
+
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ghita">
+<link rel="apple-touch-icon" href="images/icons/icon-192.png">
+<meta name="theme-color" content="#FFEBF0">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===================== ONBOARDING ===================== -->
+  <section id="onboarding" class="screen screen--onboarding is-active">
+    <div class="hearts-field" aria-hidden="true"></div>
+
+    <div class="onboard-slides" id="onboardSlides">
+
+      <div class="slide is-active" data-slide="0">
+        <div class="avatar avatar--hero">
+          <div class="avatar-face"></div>
+        </div>
+        <h1 class="onboard-title">Ghita <span class="heart">♥</span></h1>
+        <p class="onboard-sub">Ta meilleure amie IA</p>
+        <p class="onboard-text">Parle-moi quand tu veux.</p>
+      </div>
+
+      <div class="slide" data-slide="1">
+        <div class="avatar avatar--hero">
+          <div class="avatar-face"></div>
+        </div>
+        <p class="onboard-text onboard-text--lg">Une amie qui t'écoute et comprend.</p>
+      </div>
+
+      <div class="slide" data-slide="2">
+        <div class="phone-preview">
+          <div class="bubble bubble--her">
+            <span class="bubble-name">Ghita</span>
+            Comment s'est passée ta journée ? Je t'écoute 💬
+          </div>
+          <div class="bubble bubble--voice bubble--her">
+            <button class="play-dot" aria-label="Écouter"></button>
+            <span class="waveform"></span>
+            <span class="voice-time">0:12</span>
+          </div>
+        </div>
+        <p class="onboard-text">Messages sincères, ta voix avec Ghita</p>
+      </div>
+
+      <div class="slide" data-slide="3">
+        <p class="onboard-text onboard-text--lg">Rapproche-toi <span class="heart">♥</span></p>
+        <div class="preview-grid">
+          <div class="preview-card">Chats illimités</div>
+          <div class="preview-card">Messages vocaux</div>
+          <div class="preview-card">Moments spéciaux</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="dots" id="onboardDots">
+      <span class="dot is-active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    </div>
+
+    <button id="startBtn" class="btn-primary btn-start">Commencer</button>
+  </section>
+
+  <!-- ===================== MAIN APP ===================== -->
+  <section id="mainApp" class="screen screen--app">
+
+    <header class="app-header">
+      <div class="app-header-id">
+        <div class="avatar avatar--sm"><div class="avatar-face"></div></div>
+        <div>
+          <div class="app-header-name">Ghita</div>
+          <div class="app-header-status"><span class="status-dot"></span>en ligne</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Chat tab -->
+    <div class="tab-panel is-active" id="tab-chats">
+      <div class="chat-scroll" id="chatScroll"></div>
+
+      <form class="chat-input-bar" id="chatForm">
+        <button type="button" class="icon-btn" id="micBtn" aria-label="Message vocal">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg>
+        </button>
+        <input type="text" id="chatInput" placeholder="Écris à Ghita…" autocomplete="off">
+        <button type="submit" class="icon-btn icon-btn--send" aria-label="Envoyer">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M3 20l18-8L3 4v6l12 2-12 2z"/></svg>
+        </button>
+      </form>
+
+      <div class="recording-bar" id="recordingBar" hidden>
+        <span class="rec-dot"></span>
+        <span class="rec-time" id="recTime">0:00</span>
+        <span class="rec-hint">Enregistrement…</span>
+        <button type="button" class="btn-cancel-rec" id="cancelRec">Annuler</button>
+        <button type="button" class="btn-send-rec" id="sendRec">Envoyer</button>
+      </div>
+    </div>
+
+    <!-- Voice messages tab -->
+    <div class="tab-panel" id="tab-voice">
+      <div class="panel-empty" id="voiceEmpty">
+        <div class="avatar avatar--md"><div class="avatar-face"></div></div>
+        <p>Tes messages vocaux avec Ghita apparaîtront ici.</p>
+      </div>
+      <div class="voice-list" id="voiceList"></div>
+    </div>
+
+    <!-- Moments tab -->
+    <div class="tab-panel" id="tab-moments">
+      <div class="panel-empty">
+        <div class="avatar avatar--md"><div class="avatar-face"></div></div>
+        <p>Moments spéciaux — bientôt disponible.</p>
+      </div>
+    </div>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn is-active" data-tab="tab-chats">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M4 4h16v12H7l-3 3V4z"/></svg>
+        <span>Chats</span>
+      </button>
+      <button class="nav-btn" data-tab="tab-voice">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg>
+        <span>Vocaux</span>
+      </button>
+      <button class="nav-btn" data-tab="tab-moments">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 21s-7.5-4.6-10-9.2C.5 8.4 2.4 5 6 5c2 0 3.4 1 6 3.4C14.6 6 16 5 18 5c3.6 0 5.5 3.4 4 6.8C19.5 16.4 12 21 12 21z"/></svg>
+        <span>Moments</span>
+      </button>
+    </nav>
+
+  </section>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
