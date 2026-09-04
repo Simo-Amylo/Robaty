@@ -26,6 +26,7 @@
 
       <div class="slide is-active" data-slide="0">
         <div class="avatar avatar--hero">
+          <img src="assets/ghita-avatar.png" alt="Ghita" class="ghita-avatar-img" onerror="this.remove()">
           <div class="avatar-face"></div>
         </div>
         <h1 class="onboard-title">Ghita <span class="heart">♥</span></h1>
@@ -35,6 +36,7 @@
 
       <div class="slide" data-slide="1">
         <div class="avatar avatar--hero">
+          <img src="assets/ghita-avatar.png" alt="Ghita" class="ghita-avatar-img" onerror="this.remove()">
           <div class="avatar-face"></div>
         </div>
         <p class="onboard-text onboard-text--lg">Une amie qui t'écoute et comprend.</p>
@@ -78,7 +80,7 @@
 
     <header class="app-header">
       <div class="app-header-id">
-        <div class="avatar avatar--sm"><div class="avatar-face"></div></div>
+        <div class="avatar avatar--sm"><img src="assets/ghita-avatar.png" alt="Ghita" class="ghita-avatar-img" onerror="this.remove()"><div class="avatar-face"></div></div>
         <div>
           <div class="app-header-name">Ghita</div>
           <div class="app-header-status"><span class="status-dot"></span>en ligne</div>
@@ -112,17 +114,23 @@
     <!-- Voice messages tab -->
     <div class="tab-panel" id="tab-voice">
       <div class="panel-empty" id="voiceEmpty">
-        <div class="avatar avatar--md"><div class="avatar-face"></div></div>
+        <div class="avatar avatar--md"><img src="assets/ghita-avatar.png" alt="Ghita" class="ghita-avatar-img" onerror="this.remove()"><div class="avatar-face"></div></div>
         <p>Tes messages vocaux avec Ghita apparaîtront ici.</p>
       </div>
       <div class="voice-list" id="voiceList"></div>
     </div>
 
-    <!-- Moments tab -->
+    <!-- Moments tab: a curated gallery YOU populate yourself in app.js (MOMENTS_PHOTOS array).
+         There is no auto-generation here — add your own licensed/approved images. -->
     <div class="tab-panel" id="tab-moments">
-      <div class="panel-empty">
-        <div class="avatar avatar--md"><div class="avatar-face"></div></div>
-        <p>Moments spéciaux — bientôt disponible.</p>
+      <div class="moments-header">
+        <h3>Moments</h3>
+        <p>Photos partagées par Ghita</p>
+      </div>
+      <div class="gallery-grid" id="momentsGallery"></div>
+      <div class="panel-empty" id="momentsEmpty" hidden>
+        <div class="avatar avatar--md"><img src="assets/ghita-avatar.png" alt="Ghita" class="ghita-avatar-img" onerror="this.remove()"><div class="avatar-face"></div></div>
+        <p>Aucun moment ajouté pour l'instant.</p>
       </div>
     </div>
 
@@ -148,4 +156,3 @@
 <script src="app.js"></script>
 </body>
 </html>
-
