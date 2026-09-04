@@ -159,6 +159,30 @@ function requestGhitaReply(userText) {
   }, 900 + Math.random() * 600);
 }
 
+// ---------- Moments gallery ----------
+// Add your own image paths/URLs here (e.g. 'assets/moments/photo1.jpg').
+// This list is curated by you, not generated automatically.
+const MOMENTS_PHOTOS = [
+  // { src: 'assets/moments/photo1.jpg', caption: 'Café du matin ☕' },
+];
+
+function renderMoments() {
+  const grid = document.getElementById('momentsGallery');
+  const empty = document.getElementById('momentsEmpty');
+  if (!MOMENTS_PHOTOS.length) {
+    grid.innerHTML = '';
+    empty.hidden = false;
+    return;
+  }
+  empty.hidden = true;
+  grid.innerHTML = MOMENTS_PHOTOS.map(p => `
+    <div class="gallery-card">
+      <img src="${p.src}" alt="${p.caption || 'Moment'}" loading="lazy">
+    </div>
+  `).join('');
+}
+renderMoments();
+
 // ---------- Voice recording ----------
 const micBtn = document.getElementById('micBtn');
 const recordingBar = document.getElementById('recordingBar');
