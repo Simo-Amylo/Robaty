@@ -1,7 +1,7 @@
 // Service Worker ديال Robaty — كاش أساسي لهيكل التطبيق (app shell)
 // كل تحديث فالكود، بدّل رقم النسخة (CACHE_NAME) باش يتجدد الكاش عند المستخدمات
 
-const CACHE_NAME = 'robaty-v1';
+const CACHE_NAME = 'robaty-v2';
 const APP_SHELL = [
   './index.html',
   './style.css',
