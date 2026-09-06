@@ -1,17 +1,39 @@
 {
-  "name": "Ghita — Ta meilleure amie IA",
-  "short_name": "Ghita",
-  "description": "Une amie qui t'écoute et comprend.",
+  "name": "ROBATY",
+  "short_name": "Robaty",
+  "description": "Robaty — سفيرة التراث المغربي، رفيقة رقمية بذكاء اصطناعي",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#FFEBF0",
-  "theme_color": "#FFEBF0",
-  "lang": "fr",
+  "background_color": "#0a0a0c",
+  "theme_color": "#0a0a0c",
+  "lang": "ar",
+  "dir": "rtl",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
-
