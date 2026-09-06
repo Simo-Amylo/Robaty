@@ -30,7 +30,7 @@ const ROBATY_SYSTEM_PROMPT = `
 
 // ---------- إدارة مفتاح API (محلي فقط، بلا أي مفتاح مكتوب فالكود) ----------
 const KEY_STORAGE = 'robaty_gemini_key';
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-3.1-flash-lite';
 
 function getKey() {
     return localStorage.getItem(KEY_STORAGE) || '';
@@ -360,7 +360,7 @@ async function handleUserMessage() {
         saveChatHistory();
     } catch (error) {
         removeTypingIndicator(typingId);
-        appendMessage('robaty', 'سمحي لي، وقع مشكل في الاتصال 🤍 عاودي جربي من بعد.', false);
+        appendMessage('robaty', '⚠️ خطأ: ' + (error.message || 'مشكل غير معروف'), false);
         console.error(error);
     }
 }
