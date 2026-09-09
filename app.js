@@ -62,11 +62,25 @@ function getProfileFacts() {
     try { return JSON.parse(localStorage.getItem(FACTS_STORAGE) || '{}'); } catch (e) { return {}; }
 }
 
+const ALLOWED_FACT_KEYS = ['name', 'city', 'occupation', 'hobby', 'favorite_place', 'favorite_style', 'goal', 'nickname'];
+
 function mergeProfileFacts(newFacts) {
-    if (!newFacts || Object.keys(newFacts).length === 0) return;
+    if (!newFacts || typeof newFacts !== 'object') return;
     const current = getProfileFacts();
-    const merged = { ...current, ...newFacts };
-    localStorage.setItem(FACTS_STORAGE, JSON.stringify(merged));
+    let changed = false;
+
+    for (const key of ALLOWED_FACT_KEYS) {
+        const val = newFacts[key];
+        if (typeof val !== 'string') continue;
+        const trimmed = val.trim();
+        if (!trimmed) continue;
+        // أول قيمة كتبقى — ماندوزوش fact محفوظة من قبل بمجرد ذكر عابر جديد
+        if (current[key]) continue;
+        current[key] = trimmed;
+        changed = true;
+    }
+
+    if (changed) localStorage.setItem(FACTS_STORAGE, JSON.stringify(current));
 }
 
 function formatFactsForPrompt(facts) {
@@ -107,7 +121,7 @@ async function maybeUpdateNarrativeMemory() {
 هذه آخر رسائل من المحادثة:
 ${conversationText}
 
-اكتبي في سطرين أو ثلاثة، بأسلوب سردي طبيعي (مثلاً: "آخر مرة كانت المستخدمة متحمسة لـ..."), أهم اللحظات أو المواضيع المهمة اللي عاشتها هذه المحادثة مع Robaty، وادمجيها مع الملخص القديم إن وجد. لا تكرري حقائق ثابتة بسيطة (اسم، مدينة)، ركزي على السياق العاطفي والأحداث المشتركة. أجيبي فقط بالملخص النهائي، بدون أي مقدمة.`;
+أعيدي كتابة ملخص سردي جديد وموجز (سطرين لثلاثة أسطر كحد أقصى)، بأسلوب طبيعي (مثلاً: "آخر مرة كانت المستخدمة متحمسة لـ...")، يدمج أهم شيء فالملخص القديم (إن وجد) مع أهم لحظة/موضوع جديد من هاد المحادثة. لا تراكمي التفاصيل فوق بعضها — إذا الملخص طويل، احذفي أقل التفاصيل أهمية واحتفظي فقط بالأحدث والأهم. لا تكرري حقائق ثابتة بسيطة (اسم، مدينة)، ركزي على السياق العاطفي والأحداث المشتركة. أجيبي فقط بالملخص النهائي، بدون أي مقدمة.`;
 
     try {
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, {
@@ -156,6 +170,7 @@ function saveChatHistory() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    initializeTimeAwareness();
     setupMoodSlider();
     setupChatListeners();
     setupApiKeyModal();
@@ -293,7 +308,7 @@ function escapeHtml(str) {
 
 // بدّل هاد التاريخ بتاريخ انطلاق التطبيق الحقيقي — اليوم 1 فالدورة كيبدا من هنا
 const ROBATY_LAUNCH_DATE = new Date('2026-09-01T00:00:00');
-const CYCLE_LENGTH = 30;
+// ملاحظة: الدورة دابا كتدور تلقائياً حسب عدد الأيام الموجودة فعلياً فـMOMENTS (بلا رقم ثابت)
 
 const MOMENTS = [
     {
@@ -399,10 +414,11 @@ const MOMENTS = [
 function getCurrentMomentSlot() {
     const now = new Date();
     const diffDays = Math.floor((now - ROBATY_LAUNCH_DATE) / (1000 * 60 * 60 * 24));
-    const dayInCycle = ((diffDays % CYCLE_LENGTH) + CYCLE_LENGTH) % CYCLE_LENGTH + 1; // 1..30, كيدور من جديد بعد اليوم 30
+    const availableCount = MOMENTS.length; // كيدور غير بين الأيام الموجودة فعلياً (بلا القفز دايماً لليوم 1)
+    const cycleIndex = ((diffDays % availableCount) + availableCount) % availableCount;
+    const dayData = MOMENTS[cycleIndex];
     const period = now.getHours() < 17 ? 'morning' : 'evening';
 
-    const dayData = MOMENTS.find(m => m.day === dayInCycle) || MOMENTS[0];
     return dayData[period] || dayData.morning;
 }
 
@@ -433,11 +449,27 @@ function askRobatyFromMoment() {
 
 function renderSavedChatHistory() {
     const container = document.getElementById('chat-messages');
-    if (chatHistory.length === 0) return;
+    if (chatHistory.length === 0) {
+        container.innerHTML = '';
+        appendMessage('robaty', getDynamicGreeting(), false);
+        return;
+    }
     container.innerHTML = '';
     chatHistory.forEach(turn => {
         appendMessage(turn.role === 'user' ? 'user' : 'robaty', turn.text, false);
     });
+}
+
+function getDynamicGreeting() {
+    const hour = new Date().getHours();
+    const periode = getPeriodeFromHour(hour);
+    const greetings = {
+        'الصباح': 'صباح الخير والأنوار! 🤍 كيف دايرة اليوم؟ راني هنا نسمع ليك ونرافقك فنهارك.',
+        'الظهيرة': 'مسا الخير! 🤍 كيف داير نهارك لحد دابا؟ راني هنا نسمع ليك.',
+        'المساء': 'مسا النور! 🤍 كيف كانت جورناتك؟ راني هنا نسمع ليك ونرافقك.',
+        'الليل': 'مساء الخير 🤍 مازال صاحية؟ راني هنا معاك إيلا بغيتي تهضري على شي حاجة.'
+    };
+    return greetings[periode] || greetings['الصباح'];
 }
 
 function setupChatListeners() {
@@ -510,31 +542,37 @@ function removeTypingIndicator(id) {
 
 // ---------- الإدراك الزمني (Time Awareness) ----------
 const LAST_VISIT_STORAGE = 'robaty_last_visit';
+let sessionGapText = ''; // كتتحسب مرة وحدة فبداية الجلسة (آخر فتح للتطبيق)، ماشي كل رسالة
+
+// كتخدم مرة وحدة عند فتح التطبيق: كتقرا آخر زيارة قبل ما تكتبها من جديد
+function initializeTimeAwareness() {
+    const now = new Date();
+    const lastVisit = localStorage.getItem(LAST_VISIT_STORAGE);
+    if (lastVisit) {
+        const diffMs = now - new Date(lastVisit);
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        if (diffDays >= 1) sessionGapText = `آخر تفاعل كان قبل ${diffDays} يوم`;
+        else if (diffHours >= 3) sessionGapText = `آخر تفاعل كان قبل ${diffHours} ساعات`;
+    }
+    localStorage.setItem(LAST_VISIT_STORAGE, now.toISOString());
+}
+
+function getPeriodeFromHour(hour) {
+    if (hour >= 5 && hour < 12) return 'الصباح';
+    if (hour >= 12 && hour < 17) return 'الظهيرة';
+    if (hour >= 17 && hour < 21) return 'المساء';
+    return 'الليل';
+}
 
 function getTimeContext() {
     const now = new Date();
     const hour = now.getHours();
     const dateStr = now.toLocaleDateString('ar-MA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const timeStr = now.toLocaleTimeString('ar-MA', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const periode = getPeriodeFromHour(hour);
 
-    let periode;
-    if (hour >= 5 && hour < 12) periode = 'الصباح';
-    else if (hour >= 12 && hour < 17) periode = 'الظهيرة';
-    else if (hour >= 17 && hour < 21) periode = 'المساء';
-    else periode = 'الليل';
-
-    const lastVisit = localStorage.getItem(LAST_VISIT_STORAGE);
-    let gapText = '';
-    if (lastVisit) {
-        const diffMs = now - new Date(lastVisit);
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-        if (diffDays >= 1) gapText = `آخر تفاعل كان قبل ${diffDays} يوم`;
-        else if (diffHours >= 3) gapText = `آخر تفاعل كان قبل ${diffHours} ساعات`;
-    }
-    localStorage.setItem(LAST_VISIT_STORAGE, now.toISOString());
-
-    return { periode, dateStr, timeStr, gapText, hour };
+    return { periode, dateStr, timeStr, gapText: sessionGapText, hour };
 }
 
 // ---------- الاتصال الحقيقي بـGemini ----------
