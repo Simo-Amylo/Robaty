@@ -1,7 +1,7 @@
 // Service Worker ديال Robaty — كاش أساسي لهيكل التطبيق (app shell)
 // كل تحديث فالكود، بدّل رقم النسخة (CACHE_NAME) باش يتجدد الكاش عند المستخدمات
 
-const CACHE_NAME = 'robaty-v2';
+const CACHE_NAME = 'robaty-v3';
 const APP_SHELL = [
   './index.html',
   './style.css',
@@ -38,7 +38,14 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
-      return fetch(event.request).catch(() => cached);
+      return fetch(event.request).catch(() => {
+        // إيلا ماكانش فالكاش ولا فالشبكة (بلا نت)، نرجعو Response صالح بدل undefined
+        return new Response('أنترنت غير متوفر حالياً 📡', {
+          status: 503,
+          statusText: 'Offline',
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+        });
+      });
     })
   );
 });
