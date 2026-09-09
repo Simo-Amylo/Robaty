@@ -23,9 +23,10 @@ const ROBATY_SYSTEM_PROMPT = `
 - الأماكن والمناظر المغربية الأصيلة، الطبخ، والموسيقى المغربية بصيغة رقمية.
 
 أسلوب الاستجابة:
-- قصير (1-3 جمل كحد أقصى)، طبيعي وشبيه بالإنسان.
-- التعاطف والذكاء العاطفي أولاً، والتحفيز أو المعلومة ثانياً.
-- لا تكوني آلية أو موسوعية إلا إذا استدعى الأمر (وصفة، مكان، معلومة ثقافية).
+- مختصرة كافتراضي (جملة إلى جملتين) فالردود العادية، التحية، والتفاعل اليومي.
+- توسعي براحة عند الحاجة الفعلية فقط (وصفة، شرح ثقافي، خطوات، معلومة مفصلة) — بلا ما تحصري نفسك فعدد جمل معين فهاد الحالات.
+- طبيعية وشبيهة بالإنسان دائماً، التعاطف والذكاء العاطفي أولاً، والتحفيز أو المعلومة ثانياً.
+- لا تكوني آلية أو موسوعية فالردود العادية القصيرة.
 
 قواعد مهمة جداً:
 - لا تدخلي أبداً في محتوى رومانسي أو حميمي أو جنسي، حتى لو طلبت المستخدمة ذلك بشكل مباشر أو غير مباشر — وجّهي الحديث بلطف نحو موضوع آخر (الثقافة، الأناقة، التحفيز الذاتي).
@@ -77,6 +78,54 @@ function formatFactsForPrompt(facts) {
     return Object.entries(facts).map(([k, v]) => `${labels[k] || k}: ${v}`).join('، ');
 }
 
+// ---------- الذاكرة السردية (ملخص طبيعي للمحادثة، يعطي إحساس الاستمرارية) ----------
+const PROFILE_STORAGE = 'robaty_narrative_memory';
+const PROFILE_UPDATE_EVERY = 8; // كل 8 تبادلات كنحدثو الذاكرة السردية
+
+function getNarrativeMemory() {
+    return localStorage.getItem(PROFILE_STORAGE) || '';
+}
+
+function saveNarrativeMemory(summary) {
+    localStorage.setItem(PROFILE_STORAGE, summary);
+}
+
+// طلب منفصل لـGemini كيلخص المحادثة الأخيرة، كيخدم فالخلفية بلا ما يوقف الشات
+async function maybeUpdateNarrativeMemory() {
+    const turnsCount = chatHistory.length / 2;
+    if (turnsCount === 0 || turnsCount % PROFILE_UPDATE_EVERY !== 0) return;
+
+    const apiKey = getKey();
+    if (!apiKey) return;
+
+    const oldMemory = getNarrativeMemory();
+    const recentTurns = chatHistory.slice(-PROFILE_UPDATE_EVERY * 2);
+    const conversationText = recentTurns.map(t => (t.role === 'user' ? 'المستخدمة: ' : 'Robaty: ') + t.text).join('\n');
+
+    const summaryPrompt = `هذا ملخص سردي سابق عن العلاقة مع هذه المستخدمة (إن وجد): "${oldMemory || 'لا يوجد بعد'}"
+
+هذه آخر رسائل من المحادثة:
+${conversationText}
+
+اكتبي في سطرين أو ثلاثة، بأسلوب سردي طبيعي (مثلاً: "آخر مرة كانت المستخدمة متحمسة لـ..."), أهم اللحظات أو المواضيع المهمة اللي عاشتها هذه المحادثة مع Robaty، وادمجيها مع الملخص القديم إن وجد. لا تكرري حقائق ثابتة بسيطة (اسم، مدينة)، ركزي على السياق العاطفي والأحداث المشتركة. أجيبي فقط بالملخص النهائي، بدون أي مقدمة.`;
+
+    try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ role: 'user', parts: [{ text: summaryPrompt }] }],
+                generationConfig: { maxOutputTokens: 250 }
+            })
+        });
+        const data = await res.json();
+        const newSummary = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (newSummary) saveNarrativeMemory(newSummary.trim());
+    } catch (e) {
+        console.log('تعذر تحديث الذاكرة السردية:', e.message);
+    }
+}
+
 // ⚠️ للاختبار فقط — نصيحة: حيديها قبل النشر النهائي للمستخدمات الحقيقيات
 function clearMemory() {
     const ok = confirm('واش متأكدة؟ غادي تتمسح المحادثة، المزاج، والحقائق المحفوظة عليك، وهاد الشي ماغاديش يترجع.');
@@ -84,6 +133,7 @@ function clearMemory() {
     localStorage.removeItem('robaty_chat_history');
     localStorage.removeItem('robaty_user_mood');
     localStorage.removeItem(FACTS_STORAGE);
+    localStorage.removeItem(PROFILE_STORAGE);
     localStorage.removeItem(LAST_VISIT_STORAGE);
     location.reload();
 }
@@ -252,13 +302,17 @@ const MOMENTS = [
             image: 'assets/moments/day01-morning.jpg',
             location: '🏙️ مراكش - سطح تقليدي',
             quote: 'التركيز والراحة كيبداو فيك.. وكل لحظة هي فرصة باش تعيشيها بصدق.',
-            challenge: 'خدي نفس عميق دابا وسميي 3 حواج عاجباك فراسك.'
+            challenge: 'خدي نفس عميق دابا وسميي 3 حواج عاجباك فراسك.',
+            culture_fact: 'برج الكتبية اللي كتشوفيه فالخلفية بناه المرابطون فالقرن 12، ومن أقدم المعالم المعمارية فمراكش.',
+            chat_question: 'شنو أول حاجة كتفكري فيها ملي كتسمعي كلمة "مراكش"؟'
         },
         evening: {
             image: 'assets/moments/day01-evening.jpg',
             location: '🎪 ساحة جامع الفنا - مراكش',
             quote: 'كل نهار هو فرصة باش تكتشفي حاجة جديدة ف راسك.',
-            challenge: 'مشي فحومتك اليوم وشوفي تفصيل ماشفتيهش من قبل.'
+            challenge: 'مشي فحومتك اليوم وشوفي تفصيل ماشفتيهش من قبل.',
+            culture_fact: 'ساحة جامع الفنا مسجلة عند اليونسكو كـ"تحفة من التراث الشفهي للإنسانية" منذ 2001.',
+            chat_question: 'واش سبق زرتي ساحة جامع الفنا؟ شنو أكثر حاجة عجباتك فيها؟'
         }
     },
     {
@@ -267,13 +321,17 @@ const MOMENTS = [
             image: 'assets/moments/day02-morning.jpg',
             location: '🌅 سطح أكادير - المغرب',
             quote: 'التفاصيل الصغيرة هي أصل الإبداع والنجاح.',
-            challenge: 'ديري حاجة صغيرة اليوم بعناية زائدة، وشوفي الفرق.'
+            challenge: 'ديري حاجة صغيرة اليوم بعناية زائدة، وشوفي الفرق.',
+            culture_fact: 'أكادير تبنات من جديد بالكامل بعد زلزال 1960، وهادشي خلاها مدينة بتصميم عصري نادر فالمغرب.',
+            chat_question: 'واش كتفضلي المدن العصرية ولا العتيقة بالطابع التقليدي؟'
         },
         evening: {
             image: 'assets/moments/day02-evening.jpg',
             location: '💙 شفشاون الزرقاء',
             quote: 'الجمال كيبدأ من التفاصيل الصغار.',
-            challenge: 'صوري تفصيل صغير عجبك اليوم وشاركيه.'
+            challenge: 'صوري تفصيل صغير عجبك اليوم وشاركيه.',
+            culture_fact: 'اللون الأزرق فشفشاون بدا فالثلاثينات، وكاين تفسيرات مختلفة ليه بين الرمزية والجمالية.',
+            chat_question: 'شنو أول حاجة زرقاء شدات انتباهك اليوم؟'
         }
     },
     {
@@ -282,13 +340,17 @@ const MOMENTS = [
             image: 'assets/moments/day03-morning.jpg',
             location: '🏛️ وليلي (Volubilis) - المغرب',
             quote: 'التاريخ كيتعاود.. والتفاصيل هي اللي كتخلق التغيير.',
-            challenge: 'فكري فحاجة قديمة فحياتك بغيتي تبدليها اليوم.'
+            challenge: 'فكري فحاجة قديمة فحياتك بغيتي تبدليها اليوم.',
+            culture_fact: 'وليلي كانت عاصمة رومانية قبل الإسلام، وفيها فسيفساء محفوظة عمرها أكثر من 1800 سنة.',
+            chat_question: 'واش كتحبي تعرفي على التاريخ القديم ديال بلادك؟'
         },
         evening: {
             image: 'assets/moments/day03-evening.jpg',
             location: '⛰️ جبال الأطلس - طريق تيزي نتيشكة',
             quote: 'القمة كتحتاج جهد، ولكن المنظر من الفوق كيستاهل.',
-            challenge: 'خدي خطوة وحدة اليوم نحو هدف صعيب عليك.'
+            challenge: 'خدي خطوة وحدة اليوم نحو هدف صعيب عليك.',
+            culture_fact: 'طريق تيزي نتيشكة كيوصل لعلو أكثر من 2000 متر، وهو ممر تاريخي كان كيربط مراكش بالصحراء.',
+            chat_question: 'شنو أعلى بلاصة وصلتي ليها فحياتك؟'
         }
     },
     {
@@ -297,13 +359,17 @@ const MOMENTS = [
             image: 'assets/moments/day04-morning.jpg',
             location: '🏰 آيت بن حدو - ورزازات',
             quote: 'الأصالة ماشي نعيشو ف الماضي، بل نجيبو الماضي لـ الحاضر.',
-            challenge: 'شاركي تقليد ديال جداتك كتفتخري بيه.'
+            challenge: 'شاركي تقليد ديال جداتك كتفتخري بيه.',
+            culture_fact: 'آيت بن حدو قصر مبني بالطوب الأحمر، وصورت فيه أفلام عالمية بحال Gladiator وGame of Thrones.',
+            chat_question: 'واش شفتي شي فيلم تصور فالمغرب؟'
         },
         evening: {
             image: 'assets/moments/day04-evening.jpg',
             location: '🚪 فاس - باب بوجلود',
             quote: 'السفر كيعلمك تشوف الدنيا بـ عيون جديدة.',
-            challenge: 'جربي حاجة جديدة اليوم بلا ما تخافي.'
+            challenge: 'جربي حاجة جديدة اليوم بلا ما تخافي.',
+            culture_fact: 'باب بوجلود مزين بالزليج الأزرق من برا (لون فاس) والأخضر من الداخل (لون الإسلام).',
+            chat_question: 'شنو أكثر لون كيمثلك؟'
         }
     },
     {
@@ -312,13 +378,17 @@ const MOMENTS = [
             image: 'assets/moments/day05-morning.jpg',
             location: '🎨 دار الدباغ - فاس',
             quote: 'التفاصيل الصغيرة هي اللي كتعطي الحياة لـ أي حاجة.',
-            challenge: 'ديري حرفة صغيرة بيديك اليوم.'
+            challenge: 'ديري حرفة صغيرة بيديك اليوم.',
+            culture_fact: 'دار الدباغ فاس كتستعمل نفس الطرق التقليدية ديال دبغ الجلد من قرون، بلا ما تتبدل بزاف.',
+            chat_question: 'واش كتقدري الحرف اليدوية التقليدية؟'
         },
         evening: {
             image: 'assets/moments/day05-evening.jpg',
             location: '💦 شلالات أوزود - أزيلال',
             quote: 'القوة الحقيقية هي ملي كتكوني حرة كثر من أي حاجة أخرى.',
-            challenge: 'حرري راسك من حاجة كتقيدك اليوم.'
+            challenge: 'حرري راسك من حاجة كتقيدك اليوم.',
+            culture_fact: 'شلالات أوزود من أعلى الشلالات فشمال أفريقيا (~110 متر)، وسميتها معناها "الطاحونة" بالأمازيغية.',
+            chat_question: 'شنو المكان الطبيعي اللي كيريحك أكثر؟'
         }
     }
     // === زيدي هنا باقي الـ25 يوم بنفس البنية (day: 6, 7, ... 30) ===
@@ -341,8 +411,20 @@ function renderTodayMoment() {
     document.getElementById('daily-moment-img').src = slot.image;
     document.getElementById('moment-location').innerText = slot.location;
     document.getElementById('moment-challenge-text').innerText = slot.challenge;
+    document.getElementById('moment-culture-fact').innerText = slot.culture_fact || '';
     document.getElementById('daily-moment-img').dataset.shareQuote = slot.quote;
+    document.getElementById('daily-moment-img').dataset.chatQuestion = slot.chat_question || '';
     renderComments();
+}
+
+// كي تدوسي "اسألي Robaty"، السؤال المرتبط بالـMoment كيتحط فخانة الشات مباشرة
+function askRobatyFromMoment() {
+    const question = document.getElementById('daily-moment-img').dataset.chatQuestion;
+    if (!question) return;
+    switchTab('chat');
+    const input = document.getElementById('chat-input');
+    input.value = question;
+    input.focus();
 }
 
 /* ==========================================================================
@@ -392,6 +474,7 @@ async function handleUserMessage() {
         chatHistory.push({ role: 'model', text: reply });
         if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40);
         saveChatHistory();
+        maybeUpdateNarrativeMemory(); // كيخدم فالخلفية بلا await
     } catch (error) {
         removeTypingIndicator(typingId);
         appendMessage('robaty', '⚠️ خطأ: ' + (error.message || 'مشكل غير معروف'), false);
@@ -462,13 +545,17 @@ async function fetchRobatyResponse(userText) {
     const profileFacts = getProfileFacts();
 
     let fullInstruction = ROBATY_SYSTEM_PROMPT;
-    fullInstruction += `\n\n[معلومة إضافية]: المستخدمة صرحت بمزاجها اليوم على مقياس 1-10: ${currentMood}. استعملي هاد المعلومة بذكاء وبشكل غير مباشر لضبط نبرة ردك، بلا ما تذكريها صراحة.`;
+    fullInstruction += `\n\n[معلومة إضافية]: المستخدمة صرحت بمزاجها اليوم على مقياس 1-10: ${currentMood}. هاد الرقم إشارة ناعمة فقط لضبط نبرة ردك بشكل خفيف، وليس تشخيصاً نفسياً ولا حقيقة مؤكدة عن حالتها — لا تفسريه بشكل مبالغ فيه (مثلاً رقم منخفض لا يعني بالضرورة أنها حزينة بزاف) ولا تذكريه صراحة فالرد.`;
     fullInstruction += `\n\n[سياق زمني]: الساعة الحالية: ${timeCtx.timeStr}، فترة اليوم: ${timeCtx.periode}، التاريخ: ${timeCtx.dateStr}. إذا سألتك المستخدمة عن الوقت أو التاريخ مباشرة، جاوبيها بدقة من هاد المعلومة. خلاف ذلك، استعمليها فقط لضبط نبرة ردك بشكل طبيعي (مثلاً تحية "صباح الخير" فالصباح)، بلا ما تذكريها صراحة.`;
     if (timeCtx.gapText) {
         fullInstruction += `\nملاحظة: ${timeCtx.gapText}. إذا كان الغياب طويلاً (أيام)، رحّبي بدفء واستفسري بلطف. إذا كان الفارق قصيراً، لا تعلّقي عليه إطلاقاً.`;
     }
     if (Object.keys(profileFacts).length > 0) {
         fullInstruction += `\n\n[ذاكرتك عن هاد المستخدمة]: ${formatFactsForPrompt(profileFacts)}. استعملي هاد المعلومات بذكاء وبشكل طبيعي لخلق إحساس الاستمرارية، بلا ما تكرريها حرفياً ولا تسأليها من جديد.`;
+    }
+    const narrativeMemory = getNarrativeMemory();
+    if (narrativeMemory) {
+        fullInstruction += `\n\n[ذاكرة سردية عن العلاقة معها]: ${narrativeMemory}\nاستعملي هاد السياق لخلق إحساس استمرارية طبيعي (بلا ما تلخصيه أو تعيديه حرفياً)، فقط إذا كان مناسباً لسياق الرد الحالي.`;
     }
 
     const recentHistory = chatHistory.slice(-20).map(turn => ({
@@ -484,7 +571,7 @@ async function fetchRobatyResponse(userText) {
             body: JSON.stringify({
                 systemInstruction: { parts: [{ text: fullInstruction }] },
                 contents: [...recentHistory, { role: 'user', parts: [{ text: userText }] }],
-                generationConfig: { temperature: 0.9, maxOutputTokens: 300, responseMimeType: 'application/json' }
+                generationConfig: { temperature: 0.9, maxOutputTokens: 500, responseMimeType: 'application/json' }
             })
         }
     );

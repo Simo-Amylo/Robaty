@@ -252,6 +252,41 @@ body {
     font-size: 1.3rem;
 }
 
+.culture-fact-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: rgba(59, 130, 246, 0.06);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 10px 12px;
+    border-radius: var(--radius-m);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.culture-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.ask-robaty-btn {
+    width: 100%;
+    background: rgba(212, 175, 55, 0.1);
+    border: 1px solid var(--glass-border);
+    color: var(--gold-primary);
+    padding: 10px;
+    border-radius: var(--radius-m);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ask-robaty-btn:hover {
+    background: rgba(212, 175, 55, 0.18);
+}
+
 /* Moment Actions */
 .moment-actions {
     display: flex;
